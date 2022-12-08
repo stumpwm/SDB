@@ -1,0 +1,128 @@
+#+TITLE: The StumpWM Debugger
+
+* Usage
+  This minor mode enables the CLIM debugger for StumpWM (herafter referred to as
+  the SWM Debugger or SDB). When invoked, SDB will open a static window on top
+  of all other windows with a list of restarts, a backtrace, and an
+  interactor. SDB can be enabled by running the command ~sdb-mode~, at which
+  point any call to ~invoke-debugger~ will invoke SDB. In StumpWM unhandled top
+  level conditions dont invoke the debugger unless
+  ~stumpwm:*top-level-error-action*~ is set to ~:BREAK~. 
+
+  Some errors, such as errors encountered when running commands, are handled
+  automatically, eliding SDB. This can be frustrating when trying to debug an
+  error within a command, and to this end the macro ~with-sdb~ is provided,
+  which takes a condition type and when encountered invokes SDB.
+
+** Window Configuration  
+   SDB is intended to be useful regardless of the state of StumpWM. To achieve
+   this even when StumpWM is incapable of mapping, focusing, or otherwise
+   managing windows SDB is created as a static unmanaged window by setting
+   override-redirect on the window. The window will resize and move itself based
+   upon user settable values when it is opened. 
+
+** Errata and Footguns
+   - When invoked from the generic function ~handle-top-level-condition~ a
+     restart called ~abort-debugging~ will be present. This will throw to the
+     top level and will likely crash StumpWM.
+
+   - This system depends upon the CLIM debuger. (Mc)CLIM is a large system which
+     can take quite a while to compile and load. If you find yourself using SDB
+     often or wish to have it always available it may be useful to add
+     ~#:clim-debugger~ as a dependency to StumpWM and recompile. This will dump
+     an image containing CLIM.
+
+   - The CLIM debugger has some quirks and bugs. When evaluating something in
+     the selected frame (keybinding ~#\e~) it must be input as a string, and
+     followed by a space. For example, to evaluate the form ~(print *myvar*)~
+     in a frame, one would press ~e~, and then type ~"(print *myvar*)"~, and
+     finally press space. After this the input is ready and can be submitted
+     either with ~M-RET~ or by pressing the ~OK~ button. 
+   
+
+  This debugger is intended to be available even when
+  StumpWM is in a state where it cannot manage windows, and as such it 
+
+  When this system is loaded a new command called
+  ~swm-debugger-mode~ is made available which toggles the debugger mode on and
+  off. When enabled any calls to ~invoke-debugger~ will invoke SDB.
+
+  In addition, the macro ~swm-debugger-mode:with-swm-debugger~ is defined, which
+  wraps forms in a handler which invokes SDB when a specific type is
+  encountered.
+
+  #+begin_src lisp
+    (swm-debugger-mode:with-swm-debugger ((or error my-warning-condition))
+      (my-fancy-code)
+      (my-other-fancy-code))
+  #+end_src
+
+  The above will open a CLIM frame for SDB when a condition of type ~(or error
+  my-warning-condition)~ is signalled.
+
+** Examples
+   Some examples of using the debugger.
+   
+*** Debugging unhandled serious conditions
+    If the following is placed in your stumpwmrc, then calling
+    ~test-signal-my-condition~ will invoke the debugger.
+    
+    #+begin_src lisp
+      (load "path/to/swm-debugger-mode.asd")
+      (asdf:load-system :swm-debugger-mode)
+
+      (swm-debugger-mode:swm-debugger-mode)
+      (setf *top-level-error-action* :break)
+
+      (define-condition my-condition (serious-condition) ())
+
+      (defun test-signal-my-condition ()
+        (restart-case (error 'my-condition)
+          (cont () nil)
+          (retval (v)
+            :interactive (lambda ()
+                           (format *query-io* "enter value: ")
+                           (force-output *query-io*)
+                           (list (read *query-io*)))
+            v)))
+    #+end_src
+
+    Once StumpWM is up and running, run the following:
+    
+    ~colon RET eval (stumpwm::test-signal-my-condition)~
+
+    and watch the debugger get invoked. Click on the ~CONT~ restart to return
+    ~NIL~.
+
+* Documentation
+
+** Variable ~*DEBUGGER-WIDTH*~
+   Controls the width of the debugger window, defaults to 480.
+
+** Variable ~*DEBUGGER-HEIGHT*~
+   Controls the height of the debugger window, defaults to 600.
+
+** Macro ~WITH-SWM-DEBUGGER~
+   ~(with-swm-debugger (condition-type &key regrab-pointer regrab-keyboard width height) &body body)~
+   
+   *Arguments and Values*
+
+   - /condition-type/ - a type suitable for ~handler-bind~.
+   - /regrab-pointer/ - when true, regrab the pointer after the debugger has
+     exited.
+   - /regrab-keyboard/ - when true, regrab the keyboard after the debugger has
+     exited.
+   - /width/ - the width this invocation of SDB should have.
+   - /height/ - the height this invocation of SDB should have.
+   - /body/ - one or more forms to evaluate. 
+
+** Command ~swm-debugger-mode~
+   Enable SDB by setting the debugger hook to invoke SDB instead of the standard
+   debugger. 
+
+* Notes  
+  This minor mode depends upon the CLIM debugger, which can take a long time to
+  compile and load. To avoid this you can compile StumpWM with the CLIM debugger
+  baked in by modifying =stumpwm.asd= and adding ~#:clim-debugger~ as a
+  dependency, and then running ~make~ to rebuild the binary. 
+  
