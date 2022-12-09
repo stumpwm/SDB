@@ -181,7 +181,7 @@
                           :if-does-not-exist :create)
     (let ((debug-info (clim-debugger::the-condition clim:*application-frame*))
           (*print-right-margin* *backtrace-right-margin*))
-      (format f "SDB Condition Information and Backtrace~%~%~2TLiteral Condition: ~S~%~2TPretty Condition:  ~A~&~2TCondition Message: ~A~&~2TCondition Type:    ~S~&~2TCondition Extra:   ~A~%~%Backtrace:~%~%"
+      (format f "SDB CONDITION INFORMATION:~%~%~2TLiteral Condition: ~S~%~2TPretty Condition:  ~A~&~2TCondition Message: ~A~&~2TCondition Type:    ~S~&~2TCondition Extra:   ~A~%~%SDB BACKTRACE:~%~%"
               (clim-debugger::the-condition debug-info)
               (clim-debugger::the-condition debug-info)
               (clim-debugger::condition-message debug-info)
@@ -197,13 +197,6 @@
                                 blankstr
                                 (getf local :name)
                                 (getf local :value)))))
-    ;; (loop for stack-frame in (clim-debugger::backtrace
-    ;;                           (clim-debugger::the-condition
-    ;;                            clim:*application-frame*))
-    ;;       do (format f "~&[~D] ~A~&~4T~{~A~^~%~4T~}"
-    ;;                  (clim-debugger::frame-no stack-frame)
-    ;;                  (clim-debugger::frame-string stack-frame)
-    ;;                  (clim-debugger::frame-variables stack-frame)))
     (finish-output f)))
 
 (stumpwm:define-minor-mode swm-debugger-mode () ()
