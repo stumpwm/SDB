@@ -204,6 +204,17 @@
   (:interactive sdb-mode)
   (:lighter "SDB"))
 
+(defvar *swm-debuger-mode-control-i-map* (stumpwm:make-sparse-keymap))
+
+(define-swm-debugger-mode-command invoke-sdb-without-condition () ()
+  (invoke-sdb (make-condition 'simple-error :format-control "Dummy error")))
+
+(stumpwm:define-key *swm-debuger-mode-control-i-map* (stumpwm:kbd "d")
+  "invoke-sdb-without-condition")
+
+(stumpwm:define-key *swm-debugger-mode-root-map* (stumpwm:kbd "C-i")
+  '*swm-debuger-mode-control-i-map*)
+
 (defvar *holdover-debugger-hook* nil)
 
 (defun install-dbg (&rest rest)

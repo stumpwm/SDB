@@ -46,11 +46,25 @@
    #+begin_src lisp
      (load "path/to/swm-debugger-mode.asd")
      (asdf:load-system :swm-debugger-mode)
-     (swm-debugger-mode:sdb-mode)
-     (setf *top-level-error-action* :break
-           swm-debugger-mode:*debugger-width* 1900
+
+     (defun enable-break-on-errors (&rest rest)
+       (declare (ignore rest))
+       (setf *top-level-error-action* :break))
+
+     (defun disable-break-on-errors (&rest rest)
+       (declare (ignore rest))
+       (setf *top-level-error-action* :abort))
+
+     (add-hook swm-debugger-mode:*swm-debugger-mode-enable-hook*
+               #'enable-break-on-errors)
+     (add-hook swm-debugger-mode:*swm-debugger-mode-disable-hook*
+               #'disable-break-on-errors)
+
+     (setf swm-debugger-mode:*debugger-width* 1900
            swm-debugger-mode:*debugger-height* 1000
            swm-debugger-mode:*debugger-coordinates* (cons 20 80))
+     
+     (swm-debugger-mode:sdb-mode)
    #+end_src
    
 * Documentation
