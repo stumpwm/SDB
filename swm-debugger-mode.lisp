@@ -195,5 +195,3 @@
 
 (stumpwm:add-hook *swm-debugger-mode-enable-hook* #'install-dbg)
 (stumpwm:add-hook *swm-debugger-mode-disable-hook* #'uninstall-dbg)
-
-(provide 'swm-debugger-mode)
