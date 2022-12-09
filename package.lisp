@@ -4,7 +4,9 @@
   (:export #:*debugger-width*
            #:*debugger-height*
            #:*debugger-coordinates*
-           #:invoke-swm-debugger
-           #:with-swm-debugger
+           #:invoke-sdb
+           #:with-sdb
            #:sdb-mode
-))
+           
+           #:*swm-debugger-mode-enable-hook*
+           #:*swm-debugger-mode-disable-hook*))
