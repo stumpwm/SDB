@@ -4,6 +4,8 @@
   (:export #:*debugger-width*
            #:*debugger-height*
            #:*debugger-coordinates*
+           #:*backtrace-right-margin*
+           #:*override-debugger*
            #:invoke-sdb
            #:with-sdb
            #:sdb-mode

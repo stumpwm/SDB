@@ -16,6 +16,9 @@
 (defvar *override-debugger* nil
   "Set to a function to override SDB.")
 
+(defvar *backtrace-right-margin* 100
+  "The right margin the pretty printer should respect when printing backtraces.")
+
 (defclass swm-debugger (clim-debugger::clim-debugger) ())
 
 (clim-debugger::define-clim-debugger-command (com-swm-refresh-size-debugger)
@@ -169,6 +172,39 @@
   (setf (clim-debugger::returned-restart clim::*application-frame*) restart)
   (invoke-restart-interactively restart)
   (clim:frame-exit clim::*application-frame*))
+
+(clim-debugger::define-clim-debugger-command
+    (clim-debugger::com-print-backtrace :name "Print Backtrace" :menu t)
+    ((file 'string :prompt "File Path" :default "~/SDB-backtrace.txt"))
+  (with-open-file (f file :direction :output
+                          :if-exists :supersede
+                          :if-does-not-exist :create)
+    (let ((debug-info (clim-debugger::the-condition clim:*application-frame*))
+          (*print-right-margin* *backtrace-right-margin*))
+      (format f "SDB Condition Information and Backtrace~%~%~2TLiteral Condition: ~S~%~2TPretty Condition:  ~A~&~2TCondition Message: ~A~&~2TCondition Type:    ~S~&~2TCondition Extra:   ~A~%~%Backtrace:~%~%"
+              (clim-debugger::the-condition debug-info)
+              (clim-debugger::the-condition debug-info)
+              (clim-debugger::condition-message debug-info)
+              (clim-debugger::type-of-condition debug-info)
+              (clim-debugger::condition-extra debug-info))
+      (loop for frame in (clim-debugger::backtrace debug-info)
+            for numstr = (format nil "[~D]" (clim-debugger::frame-no frame))
+            for blankstr = (make-string (length numstr) :initial-element #\space)
+            do (format f "~&~A ~A~&~A Locals:"
+                       numstr (clim-debugger::frame-string frame) blankstr)
+               (loop for local in (clim-debugger::frame-variables frame)
+                     do (format f "~&~A   ~A -> ~S"
+                                blankstr
+                                (getf local :name)
+                                (getf local :value)))))
+    ;; (loop for stack-frame in (clim-debugger::backtrace
+    ;;                           (clim-debugger::the-condition
+    ;;                            clim:*application-frame*))
+    ;;       do (format f "~&[~D] ~A~&~4T~{~A~^~%~4T~}"
+    ;;                  (clim-debugger::frame-no stack-frame)
+    ;;                  (clim-debugger::frame-string stack-frame)
+    ;;                  (clim-debugger::frame-variables stack-frame)))
+    (finish-output f)))
 
 (stumpwm:define-minor-mode swm-debugger-mode () ()
   (:scope :unscoped)
