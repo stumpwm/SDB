@@ -50,7 +50,7 @@
      (setf *top-level-error-action* :break
            swm-debugger-mode:*debugger-width* 1900
            swm-debugger-mode:*debugger-height* 1000
-           swm-debugger-mode:*debugger-coordinates* (cons 20 80)
+           swm-debugger-mode:*debugger-coordinates* (cons 20 80))
    #+end_src
    
 * Documentation
