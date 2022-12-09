@@ -63,7 +63,7 @@
      (setf swm-debugger-mode:*debugger-width* 1900
            swm-debugger-mode:*debugger-height* 1000
            swm-debugger-mode:*debugger-coordinates* (cons 20 80))
-     
+
      (swm-debugger-mode:sdb-mode)
    #+end_src
    

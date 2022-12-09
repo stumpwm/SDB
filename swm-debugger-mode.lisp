@@ -59,41 +59,6 @@
     (unwind-protect (call-next-method)
       (xlib:ungrab-keyboard display))))
 
-#|
-
-(load "~/.stumpwm.d/src/minor-modes/swm-clim-debugger/swm-debugger-mode.asd")
-
-(asdf:load-system :swm-debugger-mode)
-
-(setf stumpwm:*top-level-error-action* :break
-      swm-debugger-mode:*debugger-width* 1920)
-
-(define-condition my-condition (serious-condition) ())
-
-(defcommand sdb-signal-my-condition () ()
-  (restart-case (error 'my-condition)
-    (cont () nil)
-    (retval (v)
-      :interactive (lambda ()
-                     (format *query-io* "enter value: ")
-                     (force-output *query-io*)
-                     (list (read *query-io*)))
-      v)))
-
-
-(defcommand test-signal-my-condition () ()
-  (restart-case (handler-bind ((t 'swm-debugger-mode::invoke-swm-debugger))
-                  (error 'my-condition))
-    (cont () nil)
-    (retval (v)
-      :interactive (lambda ()
-                     (format *query-io* "enter value: ")
-                     (force-output *query-io*)
-                     (list (read *query-io*)))
-      v)))
-
-|#
-
 (defun swm-debugger (condition me-or-my-encapsulation)
   "The StumpWM Debugger. Runs the CLIM debugger on a given condition."
   (declare (ignore me-or-my-encapsulation))
@@ -212,6 +177,7 @@
 (stumpwm:define-key *swm-debuger-mode-control-i-map* (stumpwm:kbd "d")
   "invoke-sdb-without-condition")
 
+
 (stumpwm:define-key *swm-debugger-mode-root-map* (stumpwm:kbd "C-i")
   '*swm-debuger-mode-control-i-map*)
 
@@ -229,3 +195,5 @@
 
 (stumpwm:add-hook *swm-debugger-mode-enable-hook* #'install-dbg)
 (stumpwm:add-hook *swm-debugger-mode-disable-hook* #'uninstall-dbg)
+
+(provide 'swm-debugger-mode)
