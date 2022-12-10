@@ -19,7 +19,7 @@
    this even when StumpWM is incapable of mapping, focusing, or otherwise
    managing windows SDB is created as a static unmanaged window by setting
    override-redirect on the window. The window will resize and move itself based
-   upon user settable values when it is opened. 
+   upon user settable values when it is opened.
 
 ** Errata and Footguns
    - Before using this, you *must* re-enable the debugger by calling
@@ -44,7 +44,6 @@
      finally press space. After this the input is ready and can be submitted
      either with ~M-RET~ or by pressing the ~OK~ button. 
    
-
 ** Example Configuration
    This will set up SDB to catch any unhandled serious conditions, and will make
    it roughly fullscreen on 1920x1080 monitors.
@@ -76,24 +75,46 @@
    
 * Documentation
 
-** Variable ~*DEBUGGER-WIDTH*~
-   Controls the width of the debugger window, defaults to 480.
+** Keybindings
+   In SDB there are several keybindings, mostly inherited from the CLIM
+   debugger. These are as follows:
 
-** Variable ~*DEBUGGER-HEIGHT*~
-   Controls the height of the debugger window, defaults to 600.
-
-** Macro ~WITH-SDB~
-   ~(with-sdb condition-type &body body)~
-
-   Establish a handler around /body/ which will invoke SDB on any signals of
-   /condition-type/.
-
-** Command ~SDB-MODE~
-   Enable SDB by setting the debugger hook to invoke SDB instead of the standard
-   debugger.
-
-** Function ~INVOKE-SDB~
-   ~(invoke-sdb condition)~
+   |------------+--------------------------------+------------------------------|
+   | keybinding | action                         | command name                 |
+   |------------+--------------------------------+------------------------------|
+   | q          | Quit debugger                  | com-quit                     |
+   | M-p        | Previous stack frame           | com-prev                     |
+   | M-n        | Next stack frame               | com-next                     |
+   | m          | Display more stack frames      | com-more                     |
+   | e          | Eval in frame                  | com-eval                     |
+   | TAB        | Toggle stack frame view        | com-toggle-active-frame-view |
+   | r          | Refresh                        | com-refresh                  |
+   | C-i        | Toggle interactor              | com-toggle-interactor        |
+   | M-v        | Toggle display source location | com-show-locations           |
+   |------------+--------------------------------+------------------------------|
+   | [1-9]      | Invoke restart N               | invoke-restart-n             |
+   |------------+--------------------------------+------------------------------|
    
-   Explicitly invoke SDB on /condition/.
+** API  
+
+*** Variable ~*DEBUGGER-WIDTH*~
+    Controls the width of the debugger window, defaults to 480.
+
+*** Variable ~*DEBUGGER-HEIGHT*~
+    Controls the height of the debugger window, defaults to 600.
+
+*** Macro ~WITH-SDB~
+    ~(with-sdb condition-type &body body)~
+
+    Establish a handler around /body/ which will invoke SDB on any signals of
+    /condition-type/.
+
+*** Command ~SDB-MODE~
+    Enable SDB by setting the debugger hook to invoke SDB instead of the standard
+    debugger.
+
+*** Function ~INVOKE-SDB~
+    ~(invoke-sdb condition)~
+   
+    Explicitly invoke SDB on /condition/.
 
