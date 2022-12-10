@@ -31,6 +31,61 @@
                                   width
                                   height))))
 
+(clim:define-gesture-name :show-location :keyboard (#\v :meta))
+
+(defparameter *show-source-locations* t)
+
+(clim-debugger::define-clim-debugger-command
+    (com-show-locations :name "Toggle display of source locations"
+                        :keystroke :show-location)
+    ()
+  (setf *show-source-locations* (not *show-source-locations*)))
+
+(clim:define-presentation-method clim:present :after
+  (object (type clim-debugger::stack-frame) stream
+          (view clim-debugger::maximized-stack-frame-view)
+          &key acceptably for-context-type)
+  (declare (ignore acceptably for-context-type))
+  (when *show-source-locations*
+    (clim:with-text-face (stream :bold)
+      (write-string "Location Information" stream))
+    (fresh-line stream)
+    (clim:indenting-output (stream ">")
+      (let* ((source-info (swank:frame-source-location
+                           (clim-debugger::frame-no object)))
+             (type (unless (atom source-info) (car source-info))))
+        (cond ((null type)
+               (write-string "No source location information" stream))
+              ((eql type :location)
+               (let ((file (assoc :file (cdr source-info)))
+                     (snippet (assoc :snippet (cdr source-info)))
+                     (position (assoc :position (cdr source-info))))
+                 (flet ((try-write (thing stream)
+                          (cond ((stringp thing)
+                                 (write-string thing stream))
+                                ((null thing)
+                                 (write-string "NOT PROVIDED" stream))
+                                (t (write thing :stream stream)))))
+                   (clim:with-text-face (stream :bold)
+                     (write-string "File: " stream))
+                   (try-write (cadr file) stream)
+                   (fresh-line stream)
+                   (clim:with-text-face (stream :bold)
+                     (write-string "Position: " stream))
+                   (try-write (cadr position) stream)
+                   (fresh-line stream)
+                   (clim:with-text-face (stream :bold)
+                     (write-string "Snippet:" stream))
+                   (fresh-line stream)
+                   (clim:indenting-output (stream ">")
+                     (write-string "..." stream)
+                     (fresh-line stream)
+                     (try-write (cadr snippet) stream)
+                     (fresh-line stream)
+                     (write-string "..." stream))
+                   (fresh-line stream)))))))
+    (fresh-line stream)))
+
 (defmethod clime:find-frame-type ((frame swm-debugger))
   :override-redirect)
 
