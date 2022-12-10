@@ -22,6 +22,11 @@
    upon user settable values when it is opened. 
 
 ** Errata and Footguns
+   - Before using this, you *must* re-enable the debugger by calling
+     ~sb-debug::enable-debugger~ in your stumpwmrc. StumpWM disables the
+     debugger by default, and as such any calls to invoke the debugger will
+     instead exit the process. 
+
    - When invoked from the generic function ~handle-top-level-condition~ a
      restart called ~abort-debugging~ will be present. This will throw to the
      top level and will likely crash StumpWM.
@@ -49,10 +54,12 @@
 
      (defun enable-break-on-errors (&rest rest)
        (declare (ignore rest))
+       (sb-debug::enable-debugger)
        (setf *top-level-error-action* :break))
 
      (defun disable-break-on-errors (&rest rest)
        (declare (ignore rest))
+       (sb-debug::disable-debugger)
        (setf *top-level-error-action* :abort))
 
      (add-hook swm-debugger-mode:*swm-debugger-mode-enable-hook*
