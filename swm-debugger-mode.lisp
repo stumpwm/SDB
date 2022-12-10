@@ -54,9 +54,7 @@
       (let* ((source-info (swank:frame-source-location
                            (clim-debugger::frame-no object)))
              (type (unless (atom source-info) (car source-info))))
-        (cond ((null type)
-               (write-string "No source location information" stream))
-              ((eql type :location)
+        (cond ((eql type :location)
                (let ((file (assoc :file (cdr source-info)))
                      (snippet (assoc :snippet (cdr source-info)))
                      (position (assoc :position (cdr source-info))))
@@ -83,7 +81,11 @@
                      (try-write (cadr snippet) stream)
                      (fresh-line stream)
                      (write-string "..." stream))
-                   (fresh-line stream)))))))
+                   (fresh-line stream))))
+              ((eql type :error)
+               (write-string "Error aquiring source location information" stream))
+              (t (write-string "Unable to determine source location information"
+                               stream)))))
     (fresh-line stream)))
 
 (defmethod clime:find-frame-type ((frame swm-debugger))
