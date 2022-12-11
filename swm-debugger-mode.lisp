@@ -305,11 +305,63 @@ Called with the file, position, snippet, and stream")
          (sb-debug::disable-debugger)))))
 
 (clim-debugger::define-clim-debugger-command
+    (clim-debugger::com-eval :name "SDB Eval in frame"
+                             :keystroke :eval
+                             :menu t)
+    ()
+  (let* ((dbg-pane (clim:find-pane-named clim:*application-frame*
+                                         'clim-debugger::debugger-pane))
+         (active-frame (clim-debugger::active-frame dbg-pane))
+         (pkg (swank-backend:frame-package active-frame)))
+    (multiple-value-bind (object type)
+        (let ((clim:*command-dispatchers* '(#\,)))
+          (clim:with-text-face (*standard-output* :bold)
+            (format *standard-output* "Eval in frame ~D (~A)>"
+                    active-frame (package-name pkg)))
+          (clim:accept 'clim::command-or-form
+                       :default-type 'empty-input
+                       :prompt " "
+                       :prompt-mode :raw))
+      (flet ((ev (form)
+               (let ((values (multiple-value-list
+                              (swank:eval-string-in-frame (format nil "~S" object)
+                                                          active-frame
+                                                          pkg))))
+                 (format *standard-output* "~&~{~A~^~%~}" values))))
+        (cond ((clim:presentation-subtypep type 'empty-input)
+               (ev '(values)))
+              ((clim:presentation-subtypep type 'clim::command)
+               (climi::ensure-complete-command object
+                                               (clim:frame-command-table
+                                                clim:*application-frame*)
+                                               *standard-input*))
+              (t (ev object)))))))
+
+(clim-debugger::define-clim-debugger-command
     (clim-debugger::com-invoke-restart :name "Invoke restart")
     ((restart 'clim-debugger::restart :gesture :select))
   (setf (clim-debugger::returned-restart clim::*application-frame*) restart)
   (invoke-restart-interactively restart)
   (clim:frame-exit clim::*application-frame*))
+
+(macrolet
+    ((define ()
+       (flet ((define-one (number)
+                (let* ((char (digit-char number))
+                       (name (alexandria:symbolicate "INVOKE-RESTART-" char)))
+                  `(clim-debugger::define-clim-debugger-command
+                       (,name :keystroke (,char :control)) ()
+                     (alexandria:when-let*
+                         ((pane (clim:find-pane-named
+                                 clim:*application-frame*
+                                 'clim-debugger::debugger-pane))
+                          (restart
+                           (nth ,number
+                                (clim-debugger::restarts
+                                 (clim-debugger::condition-info pane)))))
+                       (clim-debugger::com-invoke-restart restart))))))
+         `(progn ,@(loop :for i :to 9 :collect (define-one i))))))
+  (define))
 
 (clim-debugger::define-clim-debugger-command
     (clim-debugger::com-print-backtrace :name "Print Backtrace" :menu t)

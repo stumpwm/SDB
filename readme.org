@@ -41,13 +41,6 @@
      ~#:clim-debugger~ as a dependency to StumpWM and recompile. This will dump
      an image containing CLIM.
 
-   - The CLIM debugger has some quirks and bugs. When evaluating something in
-     the selected frame (keybinding ~#\e~) it must be input as a string, and
-     followed by a space. For example, to evaluate the form ~(print *myvar*)~
-     in a frame, one would press ~e~, and then type ~"(print *myvar*)"~, and
-     finally press space. After this the input is ready and can be submitted
-     either with ~M-RET~ or by pressing the ~OK~ button. 
-
 ** Example Configuration
    This will set up SDB to catch any unhandled serious conditions, and will make
    it roughly fullscreen on 1920x1080 monitors.
@@ -94,7 +87,7 @@
    | C-i        | Toggle interactor              | com-toggle-interactor        |
    | M-v        | Toggle display source location | com-show-locations           |
    |------------+--------------------------------+------------------------------|
-   | [1-9]      | Invoke restart N               | invoke-restart-n             |
+   | C-[1-9]    | Invoke restart N               | invoke-restart-n             |
    |------------+--------------------------------+------------------------------|
    
 ** API
