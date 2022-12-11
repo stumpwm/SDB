@@ -41,6 +41,70 @@
     ()
   (setf *show-source-locations* (not *show-source-locations*)))
 
+(defvar *position-display* nil
+  "A function to call instead of displaying the file position as is.
+Called with the file, position and stream.")
+
+(defvar *snippet-display* nil
+  "A function to call instead of displaying the snippet as is.
+Called with the file, position, snippet, and stream")
+
+(defvar *snippet-lines* 5
+  "The number of lines from the snippet to display.")
+
+(defun n-lines (string n)
+  (if (zerop n)
+      ""
+      (let ((lines (if (listp string)
+                       string
+                       (cl-ppcre:split (coerce '(#\newline) 'string) string))))
+        (do* ((l lines (cdr l))
+              (line (car l) (concatenate 'string line '(#\newline) (car l)))
+              (i 1 (1+ i)))
+             ((or (null l) (= i n))
+              line)))))
+
+(defun position->line-number (position file &optional (newline-chars '(#\newline)))
+  (let ((r 1))
+    (with-open-file (f file)
+      (loop repeat position
+            for ch = (read-char f)
+            when (member ch newline-chars :test #'char=)
+              do (incf r)))
+    r))
+
+(defun display-position-as-line (file position stream)
+  "Display the position in the file as a line number"
+  (format stream "Line ~D" (position->line-number position file)))
+
+(defun display-snippet-lines-around (file position snippet stream)
+  "Display the lines surrounding POSITION instead of SNIPPET."
+  (declare (ignore snippet))
+  (flet ((rewrite (f line-count)
+           (loop repeat line-count
+                 do (write-string (read-line f) stream)
+                    (terpri stream))))
+    (let* ((line (position->line-number position file))
+           (pre (floor *snippet-lines* 2))
+           (post (if (oddp *snippet-lines*)
+                     (floor *snippet-lines* 2)
+                     (ceiling *snippet-lines* 2)))
+           (discard (- line pre 1)))
+      (with-open-file (f file)
+        (dotimes (v discard)
+          (read-line f))
+        (fresh-line stream)
+        (write-string "..." stream)
+        (fresh-line stream)
+        (rewrite f pre)
+        (clim:with-text-face (stream :bold)
+          (write-string (read-line f) stream)
+          (terpri stream))
+        (rewrite f post)
+        (fresh-line stream)
+        (write-string "..." stream)
+        (fresh-line stream)))))
+
 (clim:define-presentation-method clim:present :after
   (object (type clim-debugger::stack-frame) stream
           (view clim-debugger::maximized-stack-frame-view)
@@ -58,29 +122,65 @@
                (let ((file (assoc :file (cdr source-info)))
                      (snippet (assoc :snippet (cdr source-info)))
                      (position (assoc :position (cdr source-info))))
-                 (flet ((try-write (thing stream)
-                          (cond ((stringp thing)
-                                 (write-string thing stream))
-                                ((null thing)
-                                 (write-string "NOT PROVIDED" stream))
-                                (t (write thing :stream stream)))))
+                 (labels ((gencont (thing stream)
+                            (lambda ()
+                              (cond ((stringp thing)
+                                     (write-string thing stream))
+                                    ((null thing)
+                                     (write-string "NOT PROVIDED" stream))
+                                    (t (write thing :stream stream)))))
+                          (write-with-newlines (stream cont)
+                            (fresh-line stream)
+                            (funcall cont))
+                          (write-elided (stream cont)
+                            (write-string "..." stream)
+                            (fresh-line stream)
+                            (funcall cont)
+                            (fresh-line stream)
+                            (write-string "..." stream))
+                          (try-write (thing stream &optional (how :plain))
+                            (let ((cont (gencont thing stream)))
+                              (case how
+                                ((:plain)
+                                 (funcall cont))
+                                ((:newline)
+                                 (write-with-newlines stream cont))
+                                ((:elided)
+                                 (write-elided stream cont))
+                                ((:elided-newline)
+                                 (write-with-newlines
+                                  stream
+                                  (lambda ()
+                                    (write-elided stream cont))))
+                                (otherwise
+                                 (funcall cont))))))
                    (clim:with-text-face (stream :bold)
                      (write-string "File: " stream))
                    (try-write (cadr file) stream)
                    (fresh-line stream)
                    (clim:with-text-face (stream :bold)
                      (write-string "Position: " stream))
-                   (try-write (cadr position) stream)
+                   (if *position-display*
+                       (funcall *position-display*
+                                (cadr file)
+                                (cadr position)
+                                stream)
+                       (try-write (cadr position) stream))
                    (fresh-line stream)
-                   (clim:with-text-face (stream :bold)
-                     (write-string "Snippet:" stream))
-                   (fresh-line stream)
-                   (clim:indenting-output (stream ">")
-                     (write-string "..." stream)
-                     (fresh-line stream)
-                     (try-write (cadr snippet) stream)
-                     (fresh-line stream)
-                     (write-string "..." stream))
+                   (when (or *snippet-lines* *snippet-display*)
+                     (clim:with-text-face (stream :bold)
+                       (write-string "Snippet:" stream))
+                     (clim:indenting-output (stream ">")
+                       (if *snippet-display*
+                           (funcall *snippet-display*
+                                    (cadr file)
+                                    (cadr position)
+                                    (cadr snippet)
+                                    stream)
+                           (try-write (if (numberp *snippet-lines*)
+                                          (n-lines (cadr snippet) *snippet-lines*)
+                                          (cadr snippet))
+                                      stream :elided-newline))))
                    (fresh-line stream))))
               ((eql type :error)
                (write-string "Error aquiring source location information" stream))

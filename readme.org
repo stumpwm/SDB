@@ -95,26 +95,71 @@
    | [1-9]      | Invoke restart N               | invoke-restart-n             |
    |------------+--------------------------------+------------------------------|
    
-** API  
+** API
 
-*** Variable ~*DEBUGGER-WIDTH*~
-    Controls the width of the debugger window, defaults to 480.
+*** Minor Mode
 
-*** Variable ~*DEBUGGER-HEIGHT*~
-    Controls the height of the debugger window, defaults to 600.
+**** Variable ~*SWM-DEBUGGER-MODE-ENABLE-HOOK*~
+     A hook run when SDB mode is activated. Defaults to ~(#'install-dbg)~
 
-*** Macro ~WITH-SDB~
-    ~(with-sdb condition-type &body body)~
+**** Variable ~*SWM-DEBUGGER-MODE-DISABLE-HOOK*~
+     A hook run when SDB mode is deactivated. Defaults to ~(#'uninstall-dbg)~
 
-    Establish a handler around /body/ which will invoke SDB on any signals of
-    /condition-type/.
+**** Command ~SDB-MODE~
+     Enable SDB by setting the debugger hook to invoke SDB instead of the standard
+     debugger.
 
-*** Command ~SDB-MODE~
-    Enable SDB by setting the debugger hook to invoke SDB instead of the standard
-    debugger.
+*** Debugger Window Control
 
-*** Function ~INVOKE-SDB~
-    ~(invoke-sdb condition)~
-   
-    Explicitly invoke SDB on /condition/.
+**** Variable ~*DEBUGGER-WIDTH*~
+     Controls the width of the debugger window, defaults to ~480~.
 
+**** Variable ~*DEBUGGER-HEIGHT*~
+     Controls the height of the debugger window, defaults to ~600~.
+
+**** Variable ~*DEBUGGER-COORDINATES*~
+     Control the X and Y coordinates of the debugger window, defaults to ~(10
+     . 10)~.
+
+*** Debugger Invocation
+
+**** Variable ~*OVERRIDE-DEBUGGER*~
+     A function to call instead of SDB. Defaults to ~NIL~.
+
+**** Macro ~WITH-SDB~
+     ~(with-sdb condition-type &body body)~
+
+     Establish a handler around /body/ which will invoke SDB on any signals of
+     /condition-type/.
+
+**** Function ~INVOKE-SDB~
+     ~(invoke-sdb condition)~
+
+     Explicitly invoke SDB on /condition/.
+
+*** Debugger Display
+
+**** Variable ~*BACKTRACE-RIGHT-MARGIN*~
+     The right margin the debugger should respect when printing the backtrace to
+     a file. Defaults to ~100~.
+
+**** Variable ~*POSITION-DISPLAY*~
+     A function to call when displaying source position information for a stack
+     frame. Defaults to ~NIL~.
+
+**** Variable ~*SNIPPET-DISPLAY*~
+     A function to call when displaying source snippet information for a stack
+     frame. Defaults to ~NIL~.
+
+**** Variable ~*SNIPPET-LINES*~
+     The number of lines of a snippet to display when displaying source
+     information for a stack frame. Defaults to ~5~. 
+
+**** Function ~DISPLAY-POSITION-AS-LINE~
+     A function to display the position as a line number. Set
+     ~*position-display*~ to this function to use. 
+
+**** Function ~DISPLAY-SNIPPET-LINES-AROUND~
+     A function to display the lines around the snippet instead of just the
+     snippet as reported by swank. Set ~*snippet-lines*~ to this function to
+     use. 
