@@ -22,10 +22,14 @@
    upon user settable values when it is opened.
 
 ** Errata and Footguns
-   - Before using this, you *must* re-enable the debugger by calling
-     ~sb-debug::enable-debugger~ in your stumpwmrc. StumpWM disables the
-     debugger by default, and as such any calls to invoke the debugger will
-     instead exit the process. 
+   - The debugger is not enabled by default in StumpWM, causing any call to
+     ~invoke-debugger~ to exit the process. To fix this
+     ~sb-debug::enable-debugger~ must be called before calling
+     ~invoke-debugger~. The default enable and disable hooks for
+     ~swm-debugger-mode~ enable and disable the debugger respectively. If
+     explicitly invoking SDB via ~invoke-debugger~ then it is the users
+     responsibility to call ~sb-debug::enable-debugger~. This is done
+     automatically within the ~with-sdb~ macro.
 
    - When invoked from the generic function ~handle-top-level-condition~ a
      restart called ~abort-debugging~ will be present. This will throw to the
@@ -43,7 +47,7 @@
      in a frame, one would press ~e~, and then type ~"(print *myvar*)"~, and
      finally press space. After this the input is ready and can be submitted
      either with ~M-RET~ or by pressing the ~OK~ button. 
-   
+
 ** Example Configuration
    This will set up SDB to catch any unhandled serious conditions, and will make
    it roughly fullscreen on 1920x1080 monitors.
@@ -53,12 +57,10 @@
 
      (defun enable-break-on-errors (&rest rest)
        (declare (ignore rest))
-       (sb-debug::enable-debugger)
        (setf *top-level-error-action* :break))
 
      (defun disable-break-on-errors (&rest rest)
        (declare (ignore rest))
-       (sb-debug::disable-debugger)
        (setf *top-level-error-action* :abort))
 
      (add-hook swm-debugger-mode:*swm-debugger-mode-enable-hook*
