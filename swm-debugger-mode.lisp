@@ -32,14 +32,18 @@
                                   height))))
 
 (clim:define-gesture-name :show-location :keyboard (#\v :meta))
+;; (clim:define-gesture-name :more :keyboard (#\m :meta))
+;; (clim:define-gesture-name :exit :keyboard (#\q :meta))
+;; (clim:define-gesture-name :eval :keyboard (#\e :meta))
+;; (clim:define-gesture-name :toggle :keyboard (#\tab :meta))
 
-(defparameter *show-source-locations* t)
+(defvar *show-source-locations* '#1=(nil :current :all . #1#))
 
 (clim-debugger::define-clim-debugger-command
     (com-show-locations :name "Toggle display of source locations"
                         :keystroke :show-location)
     ()
-  (setf *show-source-locations* (not *show-source-locations*)))
+  (setf *show-source-locations* (cdr *show-source-locations*)))
 
 (defvar *position-display* nil
   "A function to call instead of displaying the file position as is.
@@ -117,8 +121,15 @@ Called with the file, position, snippet, and stream")
   (object (type clim-debugger::stack-frame) stream
           (view clim-debugger::maximized-stack-frame-view)
           &key acceptably for-context-type)
+  ;; Define a presentation method for a stack frame that appends the source
+  ;; location information when applicable. 
   (declare (ignore acceptably for-context-type))
-  (when *show-source-locations*
+  (when (and *show-source-locations*
+             (or (eql (car *show-source-locations*) :all)
+                 (and (eql (car *show-source-locations*) :current)
+                      ;; Protect against being passed non-debugger pane streams.
+                      (ignore-errors (= (clim-debugger::active-frame stream)
+                                        (clim-debugger::frame-no object))))))
     (clim:with-text-face (stream :bold)
       (write-string "Location Information" stream))
     (fresh-line stream)
