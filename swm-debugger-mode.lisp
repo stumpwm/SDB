@@ -213,7 +213,6 @@ Called with the file, position, snippet, and stream")
 (defmethod clim:default-frame-top-level :before ((frame swm-debugger)
                                                  &key &allow-other-keys)
   ;; Resize the frame.
-  (setf (clim:frame-current-layout frame) 'clim-debugger::with-interactor)
   (clim:execute-frame-command frame
                               (list 'com-swm-refresh-size-debugger
                                     (or *debugger-width*
@@ -242,6 +241,8 @@ Called with the file, position, snippet, and stream")
         ;; dynamically bind these cause swank has trouble finding them.
         (swank::*buffer-package* *default-eval-package*)
         (swank::*buffer-readtable* *readtable*))
+    (setf (clim-debugger::frame-current-layout debugger-frame)
+          'clim-debugger::without-interactor)
     (swank-backend::call-with-debugging-environment
      (lambda ()
        ;; make sure that pointer grabs are properly restored.
