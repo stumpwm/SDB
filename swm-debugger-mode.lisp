@@ -1,10 +1,10 @@
 
 (in-package :swm-debugger-mode)
 
-(defvar *debugger-width* 480
+(defvar *debugger-width* 600
   "The width of the debugger")
 
-(defvar *debugger-height* 600
+(defvar *debugger-height* 480
   "The height of the debugger")
 
 (defvar *debugger-coordinates* (cons 10 10)
