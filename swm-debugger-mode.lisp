@@ -272,6 +272,9 @@ Called with the file, position, snippet, and stream")
                             (unwind-protect (swm-debugger c e)
                               (let ((grab (xlib:grab-keyboard window)))
                                 (stumpwm:message "Regrab status: ~A" grab)))))))
+                  (xlib:display-finish-output stumpwm:*display*)
+                  ;; Without this we end up failing to grab the keyboard and
+                  ;; keypresses go through to the previously focused window.
                   (clim:run-frame-top-Level debugger-frame))
              (when (> pointer-grabs 0)
                (stumpwm:grab-pointer (stumpwm:current-screen))))
