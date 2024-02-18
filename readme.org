@@ -31,6 +31,11 @@
      responsibility to call ~sb-debug::enable-debugger~. This is done
      automatically within the ~with-sdb~ macro.
 
+   - The function ~break~ is required by the specification to bind
+     ~*debugger-hook*~ to ~nil~, eliding the invocation of SDB. This prevents
+     the user from investigating the program via setting ~*break-on-signals*~ to
+     ~t~.
+
    - When invoked from the generic function ~handle-top-level-condition~ a
      restart called ~abort-debugging~ will be present. This will throw to the
      top level and will likely crash StumpWM.
