@@ -43,8 +43,8 @@
    - This system depends upon the CLIM debuger. (Mc)CLIM is a large system which
      can take quite a while to compile and load. If you find yourself using SDB
      often or wish to have it always available it may be useful to add
-     ~#:clim-debugger~ as a dependency to StumpWM and recompile. This will dump
-     an image containing CLIM.
+     ~#:swm-debugger-mode~ as a dependency to StumpWM and recompile. This will
+     dump an image that contains CLIM.
 
 ** Example Configuration
    This will set up SDB to catch any unhandled serious conditions, and will make
