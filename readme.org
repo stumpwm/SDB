@@ -3,48 +3,56 @@
 * Usage
   This minor mode enables the CLIM debugger for StumpWM (herafter referred to as
   the SWM Debugger or SDB). When invoked, SDB will open a static window on top
-  of all other windows with a list of restarts, a backtrace, and an
-  interactor. SDB can be enabled by running the command ~sdb-mode~, at which
-  point any call to ~invoke-debugger~ will invoke SDB. In StumpWM unhandled top
-  level conditions dont invoke the debugger unless
-  ~stumpwm:*top-level-error-action*~ is set to ~:BREAK~. 
-
-  Some errors, such as errors encountered when running commands, are handled
-  automatically, eliding SDB. This can be frustrating when trying to debug an
-  error within a command, and to this end the macro ~with-sdb~ is provided,
-  which takes a condition type and when encountered invokes SDB.
+  of all other windows with a list of restarts and a backtrace. SDB can be
+  enabled by running the command ~SDB-MODE~, at which point any call to
+  ~invoke-debugger~ will invoke SDB.
 
 ** Window Configuration  
    SDB is intended to be useful regardless of the state of StumpWM. To achieve
    this even when StumpWM is incapable of mapping, focusing, or otherwise
    managing windows SDB is created as a static unmanaged window by setting
-   override-redirect on the window. The window will resize and move itself based
-   upon user settable values when it is opened.
+   ~override-redirect~ on the window. The window will resize and move itself
+   based upon user settable values when it is opened.
 
 ** Errata and Footguns
    - The debugger is not enabled by default in StumpWM, causing any call to
-     ~invoke-debugger~ to exit the process. To fix this
-     ~sb-debug::enable-debugger~ must be called before calling
-     ~invoke-debugger~. The default enable and disable hooks for
-     ~swm-debugger-mode~ enable and disable the debugger respectively. If
-     explicitly invoking SDB via ~invoke-debugger~ then it is the users
-     responsibility to call ~sb-debug::enable-debugger~. This is done
-     automatically within the ~with-sdb~ macro.
+     ~INVOKE-DEBUGGER~ to exit the process. To fix this
+     ~SB-DEBUG::ENABLE-DEBUGGER~ must be called before calling
+     ~INVOKE-DEBUGGER~. The default enable and disable hooks for
+     ~SWM-DEBUGGER-MODE~ enable and disable the debugger respectively. If
+     explicitly invoking SDB via ~INVOKE-DEBUGGER~ then it is the users
+     responsibility to call ~SB-DEBUG::ENABLE-DEBUGGER~. This is done
+     automatically within the ~WITH-SDB~ macro. Additionally, StumpWM does not
+     invoke the debugger on unhandled top level conditions unless
+     ~STUMPWM:*TOP-LEVEL-ERROR-ACTION*~ is set to ~:BREAK~.
 
-   - The function ~break~ is required by the specification to bind
-     ~*debugger-hook*~ to ~nil~, eliding the invocation of SDB. This prevents
-     the user from investigating the program via setting ~*break-on-signals*~ to
-     ~t~.
+   - The function ~BREAK~ is required by the specification to bind
+     ~*DEBUGGER-HOOK*~ to ~NIL~, eliding the invocation of SDB. This prevents
+     the user from investigating the program via setting
+     ~*BREAK-ON-SIGNALS*~. To enter SDB using ~*BREAK-ON-SIGNALS*~, ensure that
+     ~*APPROPRIATE-DEBUGGER-HOOK*~ is set to ~(QUOTE
+     SB-EXT:*INVOKE-DEBUGGER-HOOK*)~. The default value of
+     ~*APPROPRIATE-DEBUGGER-HOOK*~ is ~(QUOTE SB-EXT:*INVOKE-DEBUGGER-HOOK*)~.
 
-   - When invoked from the generic function ~handle-top-level-condition~ a
-     restart called ~abort-debugging~ will be present. This will throw to the
+   - The variable ~*APPROPRIATE-DEBUGGER-HOOK*~ should not be modified while SDB
+     mode is enabled.
+  
+   - When invoked from the generic function ~HANDLE-TOP-LEVEL-CONDITION~ a
+     restart called ~ABORT-DEBUGGING~ will be present. This will throw to the
      top level and will likely crash StumpWM.
 
    - This system depends upon the CLIM debuger. (Mc)CLIM is a large system which
      can take quite a while to compile and load. If you find yourself using SDB
      often or wish to have it always available it may be useful to add
-     ~#:swm-debugger-mode~ as a dependency to StumpWM and recompile. This will
+     ~#:SWM-DEBUGGER-MODE~ as a dependency to StumpWM and recompile. This will
      dump an image that contains CLIM.
+
+   - Bindings defined in ~*SWM-DEBUGGER-MODE-ROOT-MAP*~ are active while SDB
+     mode is active, but because the keyboard is grabbed when SDB is invoked
+     they are not active there. To define keybindings that are active in the SDB
+     window use the CLIM keybinding facilities.
+
+   - To quit a command, CLIM uses ~C-c~, while StumpWM uses ~C-g~. 
 
 ** Example Configuration
    This will set up SDB to catch any unhandled serious conditions, and will make
@@ -68,10 +76,27 @@
 
      (setf swm-debugger-mode:*debugger-width* 1900
            swm-debugger-mode:*debugger-height* 1000
-           swm-debugger-mode:*debugger-coordinates* (cons 20 80))
+           swm-debugger-mode:*debugger-coordinates* (cons 10 40)
+           swm-debugger-mode:*font-size* :large
+           swm-debugger-mode:*position-display*
+           'swm-debugger-mode:display-position-as-line
+           swm-debugger-mode:*snippet-display*
+           'swm-debugger-mode:display-snippet-lines-around)
 
      (swm-debugger-mode:sdb-mode)
    #+end_src
+
+* Wish List
+  The following list (in no particular order) contains things that would be nice
+  to have implemented. If you implement something on this list, please modify
+  the this file to either remove the item from the list or briefly note what
+  further work needs to be done on it.
+
+  - Implement resuming from a stack frame
+  - Implement returning a value from a stack frame
+  - Make forms and their evaluated results inspectable
+  - Check if the file to write a backtrace to exists and if so, ask the user
+    whether to overwrite, append, or abort writing the backtrace.
    
 * Documentation
 
@@ -90,7 +115,8 @@
    | TAB        | Toggle stack frame view        | com-toggle-active-frame-view |
    | r          | Refresh                        | com-refresh                  |
    | C-i        | Toggle interactor              | com-toggle-interactor        |
-   | M-v        | Toggle display source location | com-show-locations           |
+   | M-l        | Toggle display source location | com-show-locations           |
+   | M-b        | Print backtrace                | com-print-backtrace          |
    |------------+--------------------------------+------------------------------|
    | C-[1-9]    | Invoke restart N               | invoke-restart-n             |
    |------------+--------------------------------+------------------------------|
@@ -104,6 +130,15 @@
 
 **** Variable ~*SWM-DEBUGGER-MODE-DISABLE-HOOK*~
      A hook run when SDB mode is deactivated. Defaults to ~(#'uninstall-dbg)~
+     
+**** Variable ~*SWM-DEBUGGER-MODE-ROOT-MAP*~
+     A root map active when SDB mode is active
+
+**** Variable ~*SWM-DEBUGGER-MODE-TOP-MAP*~
+     A top map active when SDB mode is active
+
+**** Variable ~*SWM-DEBUGER-MODE-CONTROL-I-MAP*~
+     A keymap hanging on ~C-i~ from ~*SWM-DEBUGGER-MODE-ROOT-MAP*~.
 
 **** Command ~SDB-MODE~
      Enable SDB by setting the debugger hook to invoke SDB instead of the standard
@@ -123,9 +158,6 @@
 
 *** Debugger Invocation
 
-**** Variable ~*OVERRIDE-DEBUGGER*~
-     A function to call instead of SDB. Defaults to ~NIL~.
-
 **** Macro ~WITH-SDB~
      ~(with-sdb condition-type &body body)~
 
@@ -137,11 +169,19 @@
 
      Explicitly invoke SDB on /condition/.
 
+**** Variable ~*APPROPRIATE-DEBUGGER-HOOK*~
+     The debugger hook used by SDB. This variable should be set before enabling
+     SDB mode and should not be changed while SDB mode is active.
+     
 *** Debugger Display
 
 **** Variable ~*BACKTRACE-RIGHT-MARGIN*~
      The right margin the debugger should respect when printing the backtrace to
      a file. Defaults to ~100~.
+
+**** Variable ~*FONT-SIZE*~
+     The font size to use. May be any valid CLIM font size specifier,
+     e.g. :large, or an integer point size.
 
 **** Variable ~*POSITION-DISPLAY*~
      A function to call when displaying source position information for a stack
@@ -157,9 +197,15 @@
 
 **** Function ~DISPLAY-POSITION-AS-LINE~
      A function to display the position as a line number. Set
-     ~*position-display*~ to this function to use. 
+     ~*POSITION-DISPLAY*~ to this function to use. 
 
 **** Function ~DISPLAY-SNIPPET-LINES-AROUND~
      A function to display the lines around the snippet instead of just the
-     snippet as reported by swank. Set ~*snippet-lines*~ to this function to
-     use. 
+     snippet as reported by swank. Set ~*SNIPPET-DISPLAY*~ to this function to
+     use.
+
+*** Debugger Interaction
+
+**** Variable ~*DEFAULT-EVAL-PACKAGE*~
+     The default package to read and evaluate forms in if swank cannot find a
+     suitable package for a given stack frame.
