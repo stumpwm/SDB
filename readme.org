@@ -203,3 +203,9 @@
      A function to display the lines around the snippet instead of just the
      snippet as reported by swank. Set ~*SNIPPET-DISPLAY*~ to this function to
      use.
+
+*** Debugger Interaction
+
+**** Variable ~*DEFAULT-EVAL-PACKAGE*~
+     The default package to read and evaluate forms in if swank cannot find a
+     suitable package for a given stack frame.

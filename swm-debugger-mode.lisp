@@ -449,7 +449,7 @@ function DEBUGGER-HOOK-CALL-SDB is used."
   (let* ((debug-pane (clim:find-pane-named frame 'clim-debugger::debugger-pane))
          (active-frame (clim-debugger::active-frame debug-pane))
          (package (or (swank-backend:frame-package active-frame)
-                      (find-package :cl-user))))
+                      (find-package *default-eval-package*))))
     (funcall continuation debug-pane active-frame package)))
 
 (defmacro with-stack-frame-information ((pane stack-frame package) frame
