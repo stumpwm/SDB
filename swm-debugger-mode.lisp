@@ -212,7 +212,7 @@ frames, or grabbing the keyboard from StumpWM."))
                  (write-string in stream))
                (fresh-line stream)
                (write-string printed stream)
-               (fresh-line stream);; (format stream "~A~&" printed)
+               (fresh-line stream)
                (write-string "=> " stream)
                (if out
                    (clim:indenting-output (stream "=> " :move-cursor t)
