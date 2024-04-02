@@ -30,9 +30,9 @@
      ~*DEBUGGER-HOOK*~ to ~NIL~, eliding the invocation of SDB. This prevents
      the user from investigating the program via setting
      ~*BREAK-ON-SIGNALS*~. To enter SDB using ~*BREAK-ON-SIGNALS*~, ensure that
-     ~*APPROPRIATE-DEBUGGER-HOOK*~ is set to
-     ~'SB-EXT:*INVOKE-DEBUGGER-HOOK*~. The default value of
-     ~*APPROPRIATE-DEBUGGER-HOOK*~ is ~'SB-EXT:*INVOKE-DEBUGGER-HOOK*~.
+     ~*APPROPRIATE-DEBUGGER-HOOK*~ is set to ~(QUOTE
+     SB-EXT:*INVOKE-DEBUGGER-HOOK*)~. The default value of
+     ~*APPROPRIATE-DEBUGGER-HOOK*~ is ~(QUOTE SB-EXT:*INVOKE-DEBUGGER-HOOK*)~.
 
    - The variable ~*APPROPRIATE-DEBUGGER-HOOK*~ should not be modified while SDB
      mode is enabled.
