@@ -1,6 +1,20 @@
 
 (in-package :swm-debugger-mode)
 
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  ;; Prevent SDB from being reloaded while it is running, e.g. via loadrc. 
+  (defvar *sdb-loaded-p* nil)
+  (when (and *sdb-loaded-p*
+             (stumpwm:minor-mode-enabled-p 'swm-debugger-mode))
+    (restart-case
+        (error "SDB is currently enabled, cannot reload file. Disable SDB and try again.")
+      (disable-sdb ()
+        :report "Disable SDB and continue"
+        (stumpwm:disable-minor-mode 'swm-debugger-mode))
+      (ignore ()
+        :report "«DANGER» Ignore SDB being loaded and re-evaluate the file anyway"
+        nil))))
+
 (defvar *debugger-width* 600
   "The width of the debugger")
 
@@ -31,13 +45,8 @@
                                   width
                                   height))))
 
-(clim:define-gesture-name :show-location :keyboard (#\v :meta))
-;; (clim:define-gesture-name :more :keyboard (#\m :meta))
-;; (clim:define-gesture-name :exit :keyboard (#\q :meta))
-;; (clim:define-gesture-name :eval :keyboard (#\e :meta))
-;; (clim:define-gesture-name :toggle :keyboard (#\tab :meta))
-
-(defvar *show-source-locations* '#1=(nil :current :all . #1#))
+(clim:define-gesture-name :show-location   :keyboard (#\l :meta))
+(clim:define-gesture-name :print-backtrace :keyboard (#\b :meta))
 
 (clim-debugger::define-clim-debugger-command
     (com-show-locations :name "Toggle display of source locations"
@@ -379,61 +388,118 @@ Called with the file, position, snippet, and stream")
   (define))
 
 (clim-debugger::define-clim-debugger-command
-    (clim-debugger::com-print-backtrace :name "Print Backtrace" :menu t)
-    ((file 'string :prompt "File Path" :default "~/SDB-backtrace.txt"))
-  (with-open-file (f file :direction :output
-                          :if-exists :supersede
-                          :if-does-not-exist :create)
-    (let ((debug-info (clim-debugger::the-condition clim:*application-frame*))
-          (*print-right-margin* *backtrace-right-margin*))
-      (format f "SDB CONDITION INFORMATION:~%~%~2TLiteral Condition: ~S~%~2TPretty Condition:  ~A~&~2TCondition Message: ~A~&~2TCondition Type:    ~S~&~2TCondition Extra:   ~A~%~%SDB BACKTRACE:~%~%"
-              (clim-debugger::the-condition debug-info)
-              (clim-debugger::the-condition debug-info)
-              (clim-debugger::condition-message debug-info)
-              (clim-debugger::type-of-condition debug-info)
-              (clim-debugger::condition-extra debug-info))
-      (loop for frame in (clim-debugger::backtrace debug-info)
-            for numstr = (format nil "[~D]" (clim-debugger::frame-no frame))
-            for blankstr = (make-string (length numstr) :initial-element #\space)
-            do (format f "~&~A ~A~&~A Locals:"
-                       numstr (clim-debugger::frame-string frame) blankstr)
-               (loop for local in (clim-debugger::frame-variables frame)
-                     do (format f "~&~A   ~A -> ~S"
-                                blankstr
-                                (getf local :name)
-                                (getf local :value)))))
-    (finish-output f)))
+    (clim-debugger::com-print-backtrace :name "Print Backtrace"
+                                        :menu t
+                                        :keystroke :print-backtrace)
+    ()
+  (cond ((eq (clim:frame-current-layout clim:*application-frame*)
+             'clim-debugger::with-interactor)
+         (unwind-protect
+              (multiple-value-bind (file type)
+                  (let ((clim:*command-dispatchers* '(#\,)))
+                    (clim:with-text-face (*standard-output* :bold)
+                      (terpri *standard-output*)
+                      (write-string "Save backtrace file as: " *standard-output*))
+                    (write-string "(~/SDB-backtrace.txt)" *standard-output*)
+                    (clim:accept 'string :prompt " "
+                                         :default "~/SDB-backtrace.txt"
+                                         :prompt-mode :raw))
+                (declare (ignorable type))
+                (with-open-file (f file :direction :output
+                                        :if-exists :supersede
+                                        :if-does-not-exist :create)
+                  (let ((debug-info
+                          (clim-debugger::the-condition clim:*application-frame*))
+                        (*print-right-margin* *backtrace-right-margin*))
+                    (format f "SDB CONDITION INFORMATION:~%~%~2TLiteral Condition: ~S~%~2TPretty Condition:  ~A~&~2TCondition Message: ~A~&~2TCondition Type:    ~S~&~2TCondition Extra:   ~A~%~%SDB BACKTRACE:~%~%"
+                            (clim-debugger::the-condition debug-info)
+                            (clim-debugger::the-condition debug-info)
+                            (clim-debugger::condition-message debug-info)
+                            (clim-debugger::type-of-condition debug-info)
+                            (clim-debugger::condition-extra debug-info))
+                    (loop for frame in (clim-debugger::backtrace debug-info)
+                          for numstr = (format nil "[~D]"
+                                               (clim-debugger::frame-no frame))
+                          for blankstr = (make-string (length numstr)
+                                                      :initial-element #\space)
+                          do (format f "~&~A ~A~&~A Locals:"
+                                     numstr (clim-debugger::frame-string frame) blankstr)
+                             (loop for local in (clim-debugger::frame-variables frame)
+                                   do (format f "~&~A   ~A -> ~S"
+                                              blankstr
+                                              (getf local :name)
+                                              (getf local :value)))))
+                  (finish-output f)))
+           (setf (clim:frame-current-layout clim:*application-frame*)
+                 'clim-debugger::without-interactor)))
+        (t
+         (climi::event-queue-prepend (climi::frame-command-queue
+                                      clim:*application-frame*)
+                                     '(clim-debugger::com-print-backtrace))
+         (setf (clim:frame-current-layout clim:*application-frame*)
+               'clim-debugger::with-interactor))))
 
 (stumpwm:define-minor-mode swm-debugger-mode () ()
   (:scope :unscoped)
   (:interactive sdb-mode)
   (:lighter "SDB"))
 
-(defvar *swm-debuger-mode-control-i-map* (stumpwm:make-sparse-keymap))
+(defvar *swm-debuger-mode-control-i-map* (stumpwm:make-sparse-keymap)
+  "A keymap hung on <PREFIX C-I>")
 
 (define-swm-debugger-mode-command invoke-sdb-without-condition () ()
-  (invoke-sdb (make-condition 'simple-error :format-control "Dummy error")))
+  (invoke-sdb (make-condition 'simple-error :format-control "Dummy Error")))
 
 (stumpwm:define-key *swm-debuger-mode-control-i-map* (stumpwm:kbd "d")
   "invoke-sdb-without-condition")
 
-
 (stumpwm:define-key *swm-debugger-mode-root-map* (stumpwm:kbd "C-i")
   '*swm-debuger-mode-control-i-map*)
 
-(defvar *holdover-debugger-hook* nil)
+;; Allow for hot reloading of this file without adding many versions of the same
+;; function. 
+(macrolet ((uninstaller (symbol hook)
+             `(when (and (fboundp ,symbol)
+                         (member (symbol-function ,symbol) ,hook))
+                (stumpwm:remove-hook ,hook (symbol-function ,symbol)))))
+  (uninstaller 'install-dbg *swm-debugger-mode-enable-hook*)
+  (uninstaller 'uninstall-dbg *swm-debugger-mode-disable-hook*))
 
-(defun install-dbg (&rest rest)
-  (declare (ignore rest))
-  (sb-debug::enable-debugger)
-  (unless (eq *debugger-hook* #'debugger-hook-call-sdb)
-    (setf *holdover-debugger-hook* *debugger-hook*))
-  (setf *debugger-hook* #'debugger-hook-call-sdb))
 
-(defun uninstall-dbg (&rest rest)
-  (declare (ignore rest))
-  (sb-debug::disable-debugger)
-  (setf *debugger-hook* *holdover-debugger-hook*))
+(let ((debug-hook nil)
+      (sb-ext-debug-hook nil)
+      (installed nil))
+  (defun install-dbg (&rest rest)
+    (declare (ignore rest))
+    (if installed
+        (stumpwm:message "Cannot install debugger: already installed")
+        (flet ((fn (c old)
+                 (if *debugger-hook*
+                     nil
+                     (debugger-hook-call-sdb c old))))
+          (psetf installed t
+                 debug-hook *debugger-hook*
+                 sb-ext-debug-hook sb-ext:*invoke-debugger-hook*)
+          (if (eq *appropriate-debugger-hook* :all)
+              (setf sb-ext:*invoke-debugger-hook* #'fn
+                    *debugger-hook* #'debugger-hook-call-sdb)
+              (setf (symbol-value *appropriate-debugger-hook*)
+                    #'debugger-hook-call-sdb)))))
+  (defun uninstall-dbg (&rest rest)
+    (declare (ignore rest))
+    (if installed
+        (psetf installed nil
+               *debugger-hook* debug-hook
+               sb-ext:*invoke-debugger-hook* sb-ext-debug-hook
+               debug-hook nil
+               sb-ext-debug-hook nil)
+        (stumpwm:message "Cannot uninstall debugger: not installed"))))
 
-(stumpwm:add-hook *swm-debugger-mode-enable-hook* #'install-dbg)
-(stumpwm:add-hook *swm-debugger-mode-disable-hook* #'uninstall-dbg)
+(when (not (member #'install-dbg *swm-debugger-mode-enable-hook*))
+  (stumpwm:add-hook *swm-debugger-mode-enable-hook* #'install-dbg))
+(unless (member #'uninstall-dbg *swm-debugger-mode-disable-hook*)
+  (stumpwm:add-hook *swm-debugger-mode-disable-hook* #'uninstall-dbg))
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  ;; Mark that we have compiled and loaded SDB at least once.
+  (setf *sdb-loaded-p* t))
