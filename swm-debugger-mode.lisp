@@ -629,17 +629,17 @@ to the pane."
   (:interactive sdb-mode)
   (:lighter "SDB"))
 
-(defvar *swm-debuger-mode-control-i-map* (stumpwm:make-sparse-keymap)
+(defvar *swm-debugger-mode-control-i-map* (stumpwm:make-sparse-keymap)
   "A keymap hung on <PREFIX C-I>")
 
 (define-swm-debugger-mode-command invoke-sdb-without-condition () ()
   (invoke-sdb (make-condition 'simple-error :format-control "Dummy Error")))
 
-(stumpwm:define-key *swm-debuger-mode-control-i-map* (stumpwm:kbd "d")
+(stumpwm:define-key *swm-debugger-mode-control-i-map* (stumpwm:kbd "d")
   "invoke-sdb-without-condition")
 
 (stumpwm:define-key *swm-debugger-mode-root-map* (stumpwm:kbd "C-i")
-  '*swm-debuger-mode-control-i-map*)
+  '*swm-debugger-mode-control-i-map*)
 
 ;; Allow for hot reloading of this file without adding many versions of the same
 ;; function. 
