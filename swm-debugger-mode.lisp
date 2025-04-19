@@ -531,9 +531,9 @@ to the pane."
          (setf (clim:frame-current-layout clim:*application-frame*)
                'clim-debugger::without-interactor))
         (t
-         (climi::event-queue-prepend (climi::frame-command-queue
-                                      clim:*application-frame*)
-                                     '(clim-debugger::com-eval))
+         (climi::schedule-command clim:*application-frame*
+                                  '(clim-debugger::com-eval)
+                                  0)
          (setf (clim:frame-current-layout clim:*application-frame*)
                'clim-debugger::with-interactor))))
 
@@ -547,9 +547,9 @@ to the pane."
           (loop repeat 2 do (terpri pane) finally (force-output pane))
           (invoke-restart-interactively (find-restart restart)))
         (progn
-          (climi::event-queue-prepend (climi::frame-command-queue frame)
-                                      (list 'clim-debugger::com-invoke-restart
-                                            restart))
+          (climi::schedule-command clim:*application-frame*
+                                   '(clim-debugger::com-invoke-restart restart)
+                                   0)
           (setf (clim:frame-current-layout frame)
                 'clim-debugger::with-interactor)))))
 
@@ -618,9 +618,9 @@ to the pane."
            (setf (clim:frame-current-layout clim:*application-frame*)
                  'clim-debugger::without-interactor)))
         (t
-         (climi::event-queue-prepend (climi::frame-command-queue
-                                      clim:*application-frame*)
-                                     '(clim-debugger::com-print-backtrace))
+         (climi::schedule-command clim:*application-frame*
+                                  '(clim-debugger::com-print-backtrace)
+                                  0)
          (setf (clim:frame-current-layout clim:*application-frame*)
                'clim-debugger::with-interactor))))
 
@@ -680,10 +680,10 @@ to the pane."
                sb-ext-debug-hook nil)
         (stumpwm:message "Cannot uninstall debugger: not installed"))))
 
-(when (not (member #'install-dbg *swm-debugger-mode-enable-hook*))
-  (stumpwm:add-hook *swm-debugger-mode-enable-hook* #'install-dbg))
-(unless (member #'uninstall-dbg *swm-debugger-mode-disable-hook*)
-  (stumpwm:add-hook *swm-debugger-mode-disable-hook* #'uninstall-dbg))
+(when (not (member 'install-dbg *swm-debugger-mode-enable-hook*))
+  (stumpwm:add-hook *swm-debugger-mode-enable-hook* 'install-dbg))
+(unless (member 'uninstall-dbg *swm-debugger-mode-disable-hook*)
+  (stumpwm:add-hook *swm-debugger-mode-disable-hook* 'uninstall-dbg))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   ;; Mark that we have compiled and loaded SDB at least once.
